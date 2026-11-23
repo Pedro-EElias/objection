@@ -8,7 +8,7 @@ from objection.excecoes import (
     OrcamentoInsuficienteException,
     RequisitoNaoAtendidoException,
 )
-from objection.dominio.enums import Classificacao, FasePartida, TipoAlegacao
+from objection.dominio.enums import Classificacao, FasePartida, Permissao, TipoAlegacao
 from objection.dominio.regras import calcular_probabilidade
 from objection.dominio.resultado import AnaliseAlegacao, ResultadoAcao
 from objection.dominio.validacao import exigir_intervalo, exigir_texto
@@ -40,6 +40,11 @@ class AcaoJogo(ABC):
     @abstractmethod
     def fase_permitida(self) -> FasePartida:
         """Fase em que a ação pode ser feita."""
+
+    @property
+    def permissao_exigida(self) -> Permissao:
+        """Permissão do perfil necessária para usar a ação (RN11)."""
+        return Permissao.JOGAR
 
     def validar(self, partida, caso):
         """Template method: regras comuns + gancho específico de cada ação."""
@@ -165,6 +170,9 @@ class TentativaSuborno(AcaoJogo):
 
     @property
     def nivel_discricao(self): return self._nivel_discricao
+
+    @property
+    def permissao_exigida(self): return Permissao.USAR_SUBORNO
 
     @property
     def risco(self): return 20 - 5 * self._nivel_discricao
@@ -296,6 +304,9 @@ class Blefe(AcaoDeclaratoria):
 
     @property
     def nivel(self): return self._nivel
+
+    @property
+    def permissao_exigida(self): return Permissao.USAR_BLEFE
 
     def _validar_especifico(self, partida, caso):
         super()._validar_especifico(partida, caso)

@@ -1,4 +1,4 @@
-"""Parâmetros de balanceamento centralizados aqui para ajuste"""
+"""Parâmetros de balanceamento centralizados. Ajustar aqui, nunca espalhar números pelo código."""
 from dataclasses import dataclass
 
 
@@ -38,6 +38,12 @@ class ConfigBalanceamento:
     suspeita_suborno_sucesso: int = 10
     perda_suborno: int = 30
     suspeita_suborno_descoberto: int = 40
+    # Progressão do jogador (RN12)
+    partidas_para_promocao: int = 3
+    vitorias_para_promocao: int = 2
+    # Energia de IA (valores provisórios: medir o consumo real e ajustar)
+    cota_diaria_padrao: int = 8000
+    cota_por_caso_padrao: int = 6000
 
 
 CONFIG_PADRAO = ConfigBalanceamento()

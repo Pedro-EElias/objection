@@ -131,3 +131,4 @@ class JuizCinico(Juiz):
                 mult = 1.5
                 motivos.append("O juiz aponta a contradição com ironia.")
         return AvaliacaoJuiz(mod, mult, tuple(motivos))
+

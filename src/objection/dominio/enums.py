@@ -32,3 +32,26 @@ class FaixaConfianca(Enum):
 class ResultadoVeredito(Enum):
     FAVORAVEL = "favoravel"
     DESFAVORAVEL = "desfavoravel"
+
+
+class StatusConta(Enum):
+    ATIVA = "ativa"
+    SUSPENSA = "suspensa"
+    EXCLUIDA = "excluida"
+
+
+class NivelJogador(Enum):
+    NOVATO = "novato"
+    VETERANO = "veterano"
+
+
+class Permissao(Enum):
+    JOGAR = "jogar"
+    RESGATAR_OFERTAS = "resgatar_ofertas"
+    USAR_BLEFE = "usar_blefe"
+    USAR_SUBORNO = "usar_suborno"
+    ARGUMENTO_LIVRE = "argumento_livre"
+    VER_CONSUMO = "ver_consumo"
+    GERENCIAR_COTAS = "gerenciar_cotas"
+    GERENCIAR_CONTAS = "gerenciar_contas"
+    GERENCIAR_PACOTES = "gerenciar_pacotes"

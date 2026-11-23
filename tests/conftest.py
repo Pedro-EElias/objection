@@ -30,3 +30,72 @@ def motor():
 @pytest.fixture
 def partida(motor, caso):
     return motor.iniciar_partida(caso, "P1")
+
+
+# ---------------------------------------------------------------- Etapa 2
+from datetime import datetime, timedelta
+
+from objection.dominio.usuario import Usuario
+from objection.persistencia.fabrica import criar_repositorios
+from objection.servicos.administracao import ServicoAdministracao
+from objection.servicos.autenticacao import ServicoAutenticacao
+from objection.servicos.ofertas import ServicoOfertas, garantir_pacotes_padrao
+from objection.servicos.tokens import ServicoTokens
+
+
+@pytest.fixture(autouse=True)
+def hash_rapido(monkeypatch):
+    """Menos iterações de PBKDF2 só nos testes, para ficarem rápidos."""
+    monkeypatch.setattr(Usuario, "ITERACOES_HASH", 1000)
+
+
+class Relogio:
+    def __init__(self):
+        self.agora = datetime(2026, 11, 20, 10, 0)
+
+    def __call__(self):
+        return self.agora
+
+    def avancar_dias(self, n):
+        self.agora += timedelta(days=n)
+
+
+@pytest.fixture
+def relogio():
+    return Relogio()
+
+
+@pytest.fixture
+def repos(tmp_path):
+    return criar_repositorios(tmp_path)
+
+
+@pytest.fixture
+def auth(repos, relogio):
+    return ServicoAutenticacao(repos, relogio=relogio)
+
+
+@pytest.fixture
+def tokens(repos, relogio):
+    return ServicoTokens(repos, relogio=relogio)
+
+
+@pytest.fixture
+def ofertas(repos, tokens, relogio):
+    garantir_pacotes_padrao(repos)
+    return ServicoOfertas(repos, tokens, relogio=relogio)
+
+
+@pytest.fixture
+def adm_srv(repos, tokens, relogio):
+    return ServicoAdministracao(repos, tokens, relogio=relogio)
+
+
+@pytest.fixture
+def jogador(auth):
+    return auth.cadastrar_jogador("ana", "senha123")
+
+
+@pytest.fixture
+def admin(auth):
+    return auth.cadastrar_administrador("chefe", "senha123")

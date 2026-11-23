@@ -163,8 +163,18 @@ Teste manual mostrando que a IA "sempre fala de direito" é evidência fraca: o 
 ### D20 — Cadeia de provedores de IA por juiz — PARA REVISAR E APROVAR
 - Ideia de Pedro: cada juiz tem um provedor principal e, se ele estiver indisponível ou lento, outro assume em vez de bloquear o jogador.
 - **Proposta:** `ServicoDialogo` tenta uma lista ordenada por juiz (ex.: Augusto: Gemini → Groq → DeepSeek → `ProvedorLocal`). A **personalidade do juiz fica na classe `Juiz`**, não no provedor; assim qualquer provedor responde "como aquele juiz". Timeout curto por tentativa; o consumo é registrado por provedor.
-- Os provedores previstos no briefing são Gemini, **Groq** (plataforma de inferência) e DeepSeek. "Grok" é outro produto (xAI); confirmar qual Pedro quer.
+- Provedores: Gemini, **Groq** (confirmado por Pedro em 20/11; "Grok" é outro produto, da xAI) e DeepSeek.
 - Limites e custos de cada provedor: verificar na documentação antes da Etapa de IA.
 
 ### D21 — Ranking — PARA REVISAR E APROVAR
 - Pedro gostou da ideia (D17). Ranking entre jogadores no mesmo caso, comparando resultado, confiança final e suspeita. Critério de pontuação a definir, com testes depois.
+
+### D22 — Decisões de implementação da Etapa 2 — PARA REVISAR E APROVAR
+- **Perfis:** `Usuario` (abstrata) → `Administrador` (permissões de gestão; não joga) e `Jogador` (Novato/Veterano por progressão: 3 partidas concluídas e 2 vitórias; cada partida conta uma vez).
+- **Senha:** PBKDF2-SHA256 com salt individual (biblioteca padrão), nunca em texto puro. O administrador é criado por `scripts/criar_admin.py`, que pede a senha no terminal; não existe senha padrão no código.
+- **Persistência:** `Repositorio[T]` genérico + `RepositorioJson`. Carrega ao iniciar, grava de forma atômica com cópia de segurança (`.bak`) e usa lock otimista por versão de registro (`VersaoConflitanteException`). Dois usos concretos: usuários, carteiras, consumos, pacotes e resgates.
+- **Recarga diária:** completa o saldo até a cota do dia, sem acumular a sobra. Tokens extras (ofertas, concessão do admin) acima da cota **são preservados**. *(decisão minha; revisar se preferir que extras expirem)*
+- **Energia no jogo:** autorização **antes** da chamada (saldo e cota do caso) e consumo real descontado **depois**, sem nunca deixar o saldo negativo (RN23). O jogador vê só o percentual.
+- **Excluir conta:** remove usuário e carteira; o livro de consumo é mantido para auditoria. Partidas e anotações entram nas etapas seguintes.
+- **RN25:** o administrador só gerencia contas de jogador (nunca a própria nem outras de administrador).
+- **RN11 e RN20 implementadas no motor:** Novato não executa Blefe nem Suborno; conta suspensa não inicia partida.

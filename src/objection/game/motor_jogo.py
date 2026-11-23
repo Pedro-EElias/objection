@@ -1,7 +1,7 @@
 import random
 
 from objection.config import CONFIG_PADRAO
-from objection.dominio.enums import FasePartida, ResultadoVeredito
+from objection.dominio.enums import FasePartida, Permissao, ResultadoVeredito
 from objection.dominio.partida import Partida
 from objection.dominio.regras import faixa_confianca
 from objection.dominio.resultado import HistoricoEvento, Veredito
@@ -14,7 +14,12 @@ class MotorJogo:
         self._config = config
         self._rng = random.Random(semente)
 
-    def iniciar_partida(self, caso, id_partida, id_jogador=None) -> Partida:
+    def iniciar_partida(self, caso, id_partida, usuario=None) -> Partida:
+        id_jogador = None
+        if usuario is not None:
+            usuario.exigir_ativa()  # RN20: conta suspensa não inicia partida
+            usuario.exigir(Permissao.JOGAR)
+            id_jogador = usuario.id
         c = self._config
         return Partida(id_partida, caso.id, c.orcamento_inicial,
                        c.confianca_inicial, c.suspeita_inicial, id_jogador)
@@ -27,7 +32,11 @@ class MotorJogo:
         partida.garantir_ativa()
         partida.mudar_fase(FasePartida.ABANDONADA)
 
-    def executar_acao(self, partida, caso, juiz, acao):
+    def executar_acao(self, partida, caso, juiz, acao, usuario=None):
+        # 0) autorização do perfil (RN11)
+        if usuario is not None:
+            usuario.exigir_ativa()
+            usuario.exigir(acao.permissao_exigida)
         # 1) valida sem alterar nada; se falhar, o estado continua intacto
         acao.validar(partida, caso)
         # 2) calcula o resultado (função sem efeito colateral na partida)
