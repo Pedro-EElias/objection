@@ -46,6 +46,16 @@ class AcaoJogo(ABC):
         """Permissão do perfil necessária para usar a ação (RN11)."""
         return Permissao.JOGAR
 
+    @property
+    @abstractmethod
+    def categoria(self) -> str:
+        """Tipo da ação para a interface (investigar, testemunha, alibi, suborno, argumento, blefe)."""
+
+    @property
+    @abstractmethod
+    def rotulo_risco(self) -> str:
+        """Risco em palavras, mostrado ao jogador antes de confirmar."""
+
     def validar(self, partida, caso):
         """Template method: regras comuns + gancho específico de cada ação."""
         partida.garantir_ativa()
@@ -73,6 +83,12 @@ class Investigacao(AcaoJogo):
     def __init__(self, id_acao, texto, id_evidencia, config=CONFIG_PADRAO):
         super().__init__(id_acao, texto, config)
         self._id_evidencia = exigir_texto(id_evidencia, "id_evidencia")
+
+    @property
+    def categoria(self): return "investigar"
+
+    @property
+    def rotulo_risco(self): return "nenhum"
 
     @property
     def custo(self): return self._config.custo_investigar
@@ -105,6 +121,12 @@ class PrepararTestemunha(AcaoJogo):
         self._id_testemunha = exigir_texto(id_testemunha, "id_testemunha")
 
     @property
+    def categoria(self): return "testemunha"
+
+    @property
+    def rotulo_risco(self): return "nenhum"
+
+    @property
     def custo(self): return self._config.custo_testemunha
 
     @property
@@ -135,6 +157,12 @@ class PrepararAlibi(AcaoJogo):
         self._afirmacao_alibi = exigir_texto(afirmacao_alibi, "afirmacao_alibi")
 
     @property
+    def categoria(self): return "alibi"
+
+    @property
+    def rotulo_risco(self): return "nenhum"
+
+    @property
     def custo(self): return self._config.custo_alibi
 
     @property
@@ -161,6 +189,12 @@ class TentativaSuborno(AcaoJogo):
     def __init__(self, id_acao, texto, nivel_discricao=1, config=CONFIG_PADRAO):
         super().__init__(id_acao, texto, config)
         self._nivel_discricao = exigir_intervalo(nivel_discricao, "nivel_discricao", 1, 3)
+
+    @property
+    def categoria(self): return "suborno"
+
+    @property
+    def rotulo_risco(self): return "muito alto"
 
     @property
     def custo(self): return self._config.custo_suborno
@@ -287,6 +321,12 @@ class AcaoDeclaratoria(AcaoJogo, ABC):
 class Argumento(AcaoDeclaratoria):
     """Interpretação dos fatos. Rende mais quanto mais provas descobertas o sustentam."""
 
+    @property
+    def categoria(self): return "argumento"
+
+    @property
+    def rotulo_risco(self): return "baixo"
+
     def executar(self, partida, caso, juiz, rng):
         cfg = self._config
         analise = self._analisar(partida, caso, TipoAlegacao.ARGUMENTO, 0)
@@ -304,6 +344,12 @@ class Blefe(AcaoDeclaratoria):
 
     @property
     def nivel(self): return self._nivel
+
+    @property
+    def categoria(self): return "blefe"
+
+    @property
+    def rotulo_risco(self): return {1: "médio", 2: "alto", 3: "muito alto"}[self._nivel]
 
     @property
     def permissao_exigida(self): return Permissao.USAR_BLEFE

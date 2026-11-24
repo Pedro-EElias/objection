@@ -178,3 +178,13 @@ Teste manual mostrando que a IA "sempre fala de direito" é evidência fraca: o 
 - **Excluir conta:** remove usuário e carteira; o livro de consumo é mantido para auditoria. Partidas e anotações entram nas etapas seguintes.
 - **RN25:** o administrador só gerencia contas de jogador (nunca a própria nem outras de administrador).
 - **RN11 e RN20 implementadas no motor:** Novato não executa Blefe nem Suborno; conta suspensa não inicia partida.
+
+### D23 — Decisões da Etapa 3 (interface Flet) — PARA REVISAR E APROVAR
+- **Ordem do plano:** a interface veio antes do resto do CRUD. A Etapa 4 passa a ser: gerenciar partidas (renomear e excluir), caderno de anotações e tela completa do administrador.
+- **Separação:** `app/controlador.py` guarda toda a lógica de jogo da tela e é testado sem interface; `ui/` só desenha e chama o controlador.
+- **Visual:** bancada escura (carvão), folhas de autos em papel, vinho e latão. Fontes IM Fell English (títulos e falas do juiz) e Alegreya Sans (texto), ambas OFL e dentro do projeto, sem depender de internet. A faixa lateral de cada opção indica o tipo (argumento, blefe, suborno); o significado nunca depende só da cor, sempre há texto e número. Há **um** momento animado: o carimbo "Objeção!" quando o juiz pega uma contradição ou um suborno.
+- **Retratos dos juízes:** monograma provisório. Para usar imagem, salvar `assets/juizes/formalista.png`, `pragmatico.png` e `cinico.png` (e registrar em `ASSETS.md`).
+- **Juiz escolhido pelo jogador** ao iniciar a partida. Cada partida guarda o juiz e é salva a cada ação; dá para sair e continuar depois.
+- **`ProvedorIA` (abstrata) e `ProvedorLocal`:** falas pré-escritas por juiz e evento, com a mesma interface que as IAs externas usarão. Sem IA, o jogo é completo.
+- **Rebalanceamento (Caso 1):** probabilidade-base 60, ganho do argumento 8 + 10 por prova, perda 3. Em simulação com 150 partidas por juiz: jogar bem ganha 68–81%, jogar mediano 47–55%, e jogar só com argumentos sem prova ou cair na armadilha da mensagem (E4) quase nunca ganha. Valores a revisar jogando de verdade.
+- **Cuidado de teste:** as telas são montadas e serializadas com os controles reais do Flet 1.1.2 nos testes, mas **a aparência ainda não foi vista numa janela**.

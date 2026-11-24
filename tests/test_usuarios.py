@@ -84,4 +84,3 @@ def test_estado_da_conta():
     assert j.status is StatusConta.EXCLUIDA
     with pytest.raises(TransicaoInvalidaException):
         j.reativar()
-

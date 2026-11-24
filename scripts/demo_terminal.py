@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from objection.casos.caso_1 import criar_caso_1
+from objection.casos.caso_1 import criar_caso as criar_caso_1
 from objection.dominio.acao import Argumento, Blefe, Investigacao, PrepararTestemunha
 from objection.dominio.juiz import JuizCinico, JuizFormalista, JuizPragmatico
 from objection.game.motor_jogo import MotorJogo

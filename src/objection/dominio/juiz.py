@@ -3,16 +3,22 @@ from abc import ABC, abstractmethod
 from objection.dominio.enums import Classificacao, TipoAlegacao
 from objection.dominio.resultado import AnaliseAlegacao, AvaliacaoJuiz
 from objection.dominio.validacao import exigir_texto
+from objection.excecoes import DadosInvalidosException
 
 
 class Juiz(ABC):
     """Juiz abstrato. Avalia uma análise e devolve um parecer; nunca altera o estado."""
+
+    ID = "juiz"
 
     def __init__(self, nome, titulo, perfil, estilo_fala):
         self._nome = exigir_texto(nome, "nome")
         self._titulo = exigir_texto(titulo, "titulo")
         self._perfil = exigir_texto(perfil, "perfil")
         self._estilo_fala = exigir_texto(estilo_fala, "estilo_fala")
+
+    @property
+    def id(self): return type(self).ID
 
     @property
     def nome(self): return self._nome
@@ -33,6 +39,8 @@ class Juiz(ABC):
 
 class JuizFormalista(Juiz):
     """Augusto Valença: valoriza provas e pune contradições com mais suspeita."""
+
+    ID = "formalista"
 
     def __init__(self, nome="Augusto Valença", titulo="Juiz Titular",
                  peso_evidencia=8, penalidade_sem_prova=15, multiplicador_contradicao=1.5):
@@ -65,6 +73,8 @@ class JuizFormalista(Juiz):
 
 class JuizPragmatico(Juiz):
     """Helena Duarte: valoriza contexto e testemunhas; técnica sozinha não basta."""
+
+    ID = "pragmatico"
 
     def __init__(self, nome="Helena Duarte", titulo="Juíza Titular",
                  peso_testemunha=6, limite_bonus_tecnico=12, bonus_alibi=5):
@@ -104,6 +114,8 @@ class JuizPragmatico(Juiz):
 class JuizCinico(Juiz):
     """Otávio Ferraz: tolera ousadia coerente, castiga blefe frágil."""
 
+    ID = "cinico"
+
     def __init__(self, nome="Otávio Ferraz", titulo="Juiz Titular",
                  tolerancia_risco=4, penalidade_blefe_fragil=25):
         super().__init__(nome, titulo,
@@ -132,3 +144,14 @@ class JuizCinico(Juiz):
                 motivos.append("O juiz aponta a contradição com ironia.")
         return AvaliacaoJuiz(mod, mult, tuple(motivos))
 
+
+def criar_juiz(id_juiz: str) -> Juiz:
+    """Cria o juiz pelo identificador (usado ao carregar partidas salvas e na escolha do jogador)."""
+    for classe in (JuizFormalista, JuizPragmatico, JuizCinico):
+        if classe.ID == id_juiz:
+            return classe()
+    raise DadosInvalidosException(f"Juiz desconhecido: {id_juiz}")
+
+
+def todos_os_juizes() -> list:
+    return [JuizFormalista(), JuizPragmatico(), JuizCinico()]

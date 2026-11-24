@@ -12,7 +12,7 @@ class ConfigBalanceamento:
     max_rodadas: int = 6
     suspeita_maxima: int = 100
     # Probabilidade
-    prob_base: int = 50
+    prob_base: int = 60
     prob_base_suborno: int = 45
     prob_min: int = 5
     prob_max: int = 95
@@ -25,9 +25,9 @@ class ConfigBalanceamento:
     custo_alibi: int = 35
     custo_suborno: int = 50
     # Efeitos
-    ganho_argumento: int = 10
-    ganho_por_evidencia: int = 5
-    perda_argumento: int = 5
+    ganho_argumento: int = 8
+    ganho_por_evidencia: int = 10
+    perda_argumento: int = 3
     suspeita_falha_argumento: int = 5
     ganho_blefe_base: int = 10
     ganho_blefe_por_nivel: int = 5

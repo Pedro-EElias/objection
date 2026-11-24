@@ -23,10 +23,13 @@ class Partida:
         FasePartida.ABANDONADA: set(),
     }
 
-    def __init__(self, id_partida, id_caso, orcamento, confianca, suspeita, id_jogador=None):
+    def __init__(self, id_partida, id_caso, orcamento, confianca, suspeita,
+                 id_jogador=None, id_juiz=None, nome=None):
         self._id = exigir_texto(id_partida, "id_partida")
         self._id_caso = exigir_texto(id_caso, "id_caso")
         self._id_jogador = id_jogador
+        self._id_juiz = id_juiz
+        self._nome = exigir_texto(nome, "nome") if nome is not None else f"Partida {self._id}"
         self._orcamento = exigir_intervalo(orcamento, "orcamento", 0, 1_000_000)
         self._confianca = exigir_intervalo(confianca, "confianca", 0, 100)
         self._suspeita = exigir_intervalo(suspeita, "suspeita", 0, 100)
@@ -51,6 +54,12 @@ class Partida:
 
     @property
     def id_jogador(self): return self._id_jogador
+
+    @property
+    def id_juiz(self): return self._id_juiz
+
+    @property
+    def nome(self): return self._nome
 
     @property
     def fase(self): return self._fase
@@ -160,6 +169,29 @@ class Partida:
     def definir_veredito(self, veredito):
         self._veredito = veredito
         self._tocar()
+
+    def renomear(self, novo_nome: str):
+        self._nome = exigir_texto(novo_nome, "nome")
+        self._tocar()
+
+    @classmethod
+    def restaurar(cls, id_partida, id_caso, id_jogador, id_juiz, nome, fase, orcamento, confianca,
+                  suspeita, evidencias, testemunhas, alibi, suborno, acoes, afirmacoes, rodada,
+                  historico, veredito, versao):
+        """Reconstrói uma partida salva (usado só pela persistência)."""
+        p = cls(id_partida, id_caso, orcamento, confianca, suspeita, id_jogador, id_juiz, nome)
+        p._fase = fase
+        p._evidencias = set(evidencias)
+        p._testemunhas = set(testemunhas)
+        p._alibi = bool(alibi)
+        p._suborno = bool(suborno)
+        p._acoes = set(acoes)
+        p._afirmacoes = list(afirmacoes)
+        p._rodada = rodada
+        p._historico = list(historico)
+        p._veredito = veredito
+        p._versao = versao
+        return p
 
     def mudar_fase(self, nova: FasePartida):
         if nova not in self._TRANSICOES[self._fase]:

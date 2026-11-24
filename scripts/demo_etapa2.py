@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from objection.casos.caso_1 import criar_caso_1
+from objection.casos.caso_1 import criar_caso as criar_caso_1
 from objection.dominio.acao import Argumento, Blefe
 from objection.dominio.juiz import JuizFormalista
 from objection.excecoes import ObjectionException

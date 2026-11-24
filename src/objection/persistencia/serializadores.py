@@ -1,7 +1,11 @@
 """Conversão entre objetos de domínio e dicionários JSON."""
 from datetime import date, datetime
 
-from objection.dominio.enums import NivelJogador, Permissao, StatusConta
+from objection.dominio.enums import (
+    FaixaConfianca, FasePartida, NivelJogador, Permissao, ResultadoVeredito, StatusConta,
+)
+from objection.dominio.partida import Partida
+from objection.dominio.resultado import HistoricoEvento, Veredito
 from objection.dominio.tokens import CarteiraTokens, PacoteTokens, RegistroConsumo, ResgateOferta
 from objection.dominio.usuario import Administrador, Jogador, Usuario
 from objection.excecoes import DadosCorrompidosException
@@ -96,3 +100,44 @@ def resgate_de_dict(d: dict) -> ResgateOferta:
     except (KeyError, ValueError, TypeError) as erro:
         raise DadosCorrompidosException(f"Registro de resgate inválido: {erro}") from None
 
+
+def _evento_para_dict(e: HistoricoEvento) -> dict:
+    return {"rodada": e.rodada, "id_acao": e.id_acao, "descricao": e.descricao, "sucesso": e.sucesso,
+            "delta_confianca": e.delta_confianca, "delta_suspeita": e.delta_suspeita,
+            "motivos": list(e.motivos)}
+
+
+def _evento_de_dict(d: dict) -> HistoricoEvento:
+    return HistoricoEvento(d["rodada"], d["id_acao"], d["descricao"], d["sucesso"],
+                           d["delta_confianca"], d["delta_suspeita"], tuple(d["motivos"]))
+
+
+def partida_para_dict(p: Partida) -> dict:
+    v = p.veredito
+    return {
+        "id": p.id, "id_caso": p.id_caso, "id_jogador": p.id_jogador, "id_juiz": p.id_juiz,
+        "nome": p.nome, "fase": p.fase.value, "orcamento": p.orcamento,
+        "confianca": p.confianca, "suspeita": p.suspeita,
+        "evidencias": sorted(p.evidencias_descobertas), "testemunhas": sorted(p.testemunhas_preparadas),
+        "alibi": p.alibi_preparado, "suborno": p.suborno_tentado,
+        "acoes": sorted(p.acoes_executadas), "afirmacoes": list(p.afirmacoes), "rodada": p.rodada,
+        "historico": [_evento_para_dict(e) for e in p.historico], "versao": p.versao,
+        "veredito": None if v is None else {
+            "resultado": v.resultado.value, "confianca_final": v.confianca_final,
+            "suspeita_final": v.suspeita_final, "faixa": v.faixa.value, "motivos": list(v.motivos)},
+    }
+
+
+def partida_de_dict(d: dict) -> Partida:
+    try:
+        v = d["veredito"]
+        veredito = None if v is None else Veredito(
+            ResultadoVeredito(v["resultado"]), v["confianca_final"], v["suspeita_final"],
+            FaixaConfianca(v["faixa"]), tuple(v["motivos"]))
+        return Partida.restaurar(
+            d["id"], d["id_caso"], d["id_jogador"], d["id_juiz"], d["nome"], FasePartida(d["fase"]),
+            d["orcamento"], d["confianca"], d["suspeita"], d["evidencias"], d["testemunhas"],
+            d["alibi"], d["suborno"], d["acoes"], d["afirmacoes"], d["rodada"],
+            [_evento_de_dict(e) for e in d["historico"]], veredito, d["versao"])
+    except (KeyError, ValueError, TypeError) as erro:
+        raise DadosCorrompidosException(f"Registro de partida inválido: {erro}") from None

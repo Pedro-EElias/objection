@@ -14,7 +14,7 @@ class MotorJogo:
         self._config = config
         self._rng = random.Random(semente)
 
-    def iniciar_partida(self, caso, id_partida, usuario=None) -> Partida:
+    def iniciar_partida(self, caso, id_partida, usuario=None, id_juiz=None, nome=None) -> Partida:
         id_jogador = None
         if usuario is not None:
             usuario.exigir_ativa()  # RN20: conta suspensa não inicia partida
@@ -22,7 +22,7 @@ class MotorJogo:
             id_jogador = usuario.id
         c = self._config
         return Partida(id_partida, caso.id, c.orcamento_inicial,
-                       c.confianca_inicial, c.suspeita_inicial, id_jogador)
+                       c.confianca_inicial, c.suspeita_inicial, id_jogador, id_juiz, nome)
 
     def iniciar_julgamento(self, partida):
         partida.garantir_ativa()
