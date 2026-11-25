@@ -6,6 +6,7 @@ from objection.dominio.enums import StatusConta
 from objection.dominio.tokens import CarteiraTokens
 from objection.dominio.usuario import Administrador, Jogador
 from objection.excecoes import ApelidoEmUsoException, CredenciaisInvalidasException
+from objection.servicos.partidas import limpar_dados_do_jogador
 
 
 class ServicoAutenticacao:
@@ -62,9 +63,10 @@ class ServicoAutenticacao:
         self._repos.usuarios.salvar(usuario)
 
     def excluir_conta(self, usuario, senha):
-        """Remove a conta e a carteira. O livro de consumo é mantido para auditoria."""
+        """Remove conta, carteira, partidas e anotações. O livro de consumo é mantido para auditoria."""
         if not usuario.verificar_senha(senha):
             raise CredenciaisInvalidasException("Senha incorreta.")
         usuario.marcar_excluida()
+        limpar_dados_do_jogador(self._repos, usuario.id)
         self._repos.usuarios.remover(usuario.id)
         self._repos.carteiras.remover(usuario.id)

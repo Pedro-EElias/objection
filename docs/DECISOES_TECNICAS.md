@@ -188,3 +188,13 @@ Teste manual mostrando que a IA "sempre fala de direito" é evidência fraca: o 
 - **`ProvedorIA` (abstrata) e `ProvedorLocal`:** falas pré-escritas por juiz e evento, com a mesma interface que as IAs externas usarão. Sem IA, o jogo é completo.
 - **Rebalanceamento (Caso 1):** probabilidade-base 60, ganho do argumento 8 + 10 por prova, perda 3. Em simulação com 150 partidas por juiz: jogar bem ganha 68–81%, jogar mediano 47–55%, e jogar só com argumentos sem prova ou cair na armadilha da mensagem (E4) quase nunca ganha. Valores a revisar jogando de verdade.
 - **Cuidado de teste:** as telas são montadas e serializadas com os controles reais do Flet 1.1.2 nos testes, mas **a aparência ainda não foi vista numa janela**.
+
+### D24 — Decisões da Etapa 4 e ajustes de revisão — PARA REVISAR E APROVAR
+- **Senha forte (RN26, pedido de Pedro):** mínimo de 8 caracteres, com letra minúscula, maiúscula, número e caractere especial. Vale no cadastro, na troca de senha e na criação do administrador. A mensagem diz exatamente o que falta.
+- **Nível do jogador visível:** o texto sob o nome mostra o progresso rumo a Veterano (partidas concluídas e vitórias). Veterano mostra só "veterano".
+- **Título da tela de login:** o tamanho acompanha a largura da janela e nunca quebra.
+- **Gerenciar partidas (CRUD):** renomear (3 a 60 caracteres) e excluir. Excluir apaga também as anotações da partida (com confirmação).
+- **Caderno de anotações (CRUD):** por partida. Título até 60 caracteres, texto até 600. **RN14:** só cita provas já descobertas na partida. Só o dono vê e altera suas anotações.
+- **Excluir conta** (pelo jogador ou pelo administrador) apaga também partidas e anotações; o livro de consumo é mantido para auditoria.
+- **Painel do administrador:** Consumo (total, real x simulado, por conta, caso, juiz e provedor), Contas (cotas, conceder e revogar tokens, suspender, reativar, remover) e Pacotes (criar, editar, remover). O administrador vê os tokens reais; o jogador vê só a porcentagem.
+- **Falta para a rubrica:** README com as regras não implementadas e as 5 situações de risco, diagrama UML (outra pessoa), nomes e matrículas no README, e conferir o item de apresentação. IA real e Casos 2 e 3 são extras.

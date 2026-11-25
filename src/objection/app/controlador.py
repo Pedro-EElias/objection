@@ -21,6 +21,8 @@ from objection.ia.local import ProvedorLocal
 from objection.persistencia.fabrica import criar_repositorios
 from objection.servicos.administracao import ServicoAdministracao
 from objection.servicos.autenticacao import ServicoAutenticacao
+from objection.servicos.caderno import ServicoCaderno
+from objection.servicos.partidas import ServicoPartidas
 from objection.servicos.ofertas import ServicoOfertas, garantir_pacotes_padrao
 from objection.servicos.tokens import ServicoTokens
 
@@ -35,11 +37,13 @@ class SessaoApp:
         self.tokens = ServicoTokens(self.repos, relogio=relogio)
         self.ofertas = ServicoOfertas(self.repos, self.tokens, relogio=relogio)
         self.administracao = ServicoAdministracao(self.repos, self.tokens, relogio=relogio)
+        self.caderno = ServicoCaderno(self.repos, relogio=relogio)
+        self.partidas = ServicoPartidas(self.repos)
         self.motor = MotorJogo(semente=semente)
         self.provedor = provedor or ProvedorLocal()
 
     def partidas_do_jogador(self, usuario) -> list:
-        return [p for p in self.repos.partidas.listar() if p.id_jogador == usuario.id]
+        return self.partidas.listar(usuario)
 
 
 @dataclass(frozen=True)

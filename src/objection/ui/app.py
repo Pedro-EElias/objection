@@ -10,6 +10,8 @@ from objection.dominio.juiz import todos_os_juizes
 from objection.dominio.usuario import Administrador
 from objection.excecoes import ObjectionException
 from objection.ui import tema
+from objection.ui.admin import tela_admin
+from objection.ui.dialogos import caixa, campo, dialogo_confirmacao, dialogo_formulario
 from objection.ui.componentes import (
     carimbo_objecao, faixa_suspeita, folha, folha_de_evidencia, folha_de_opcao,
     linha_de_historico, medidor, placa_do_juiz, retrato,
@@ -35,6 +37,7 @@ class AppUI:
         self.fala = None
         self.narracao = []
         self.carimbo = None
+        self.secao_admin = "consumo"
 
     # ------------------------------------------------------------- base
     def iniciar(self):
@@ -79,25 +82,32 @@ class AppUI:
         alternar = botao("Criar conta" if modo == "entrar" else "Já tenho conta",
                          lambda e: self.mostrar_login("cadastro" if modo == "entrar" else "entrar"),
                          "secundario")
+        dica_senha = [] if modo == "entrar" else [texto(
+            "Use 8 ou mais caracteres, com letra maiúscula, minúscula, número e caractere especial.",
+            14, tema.TINTA, "CorpoItalico")]
         formulario = folha(ft.Column([
             texto("Entrar na sala" if modo == "entrar" else "Criar uma conta de jogador", 24, tema.TINTA, "Fell"),
-            campo_apelido, campo_senha, mensagem,
+            campo_apelido, campo_senha, *dica_senha, mensagem,
             ft.Row([botao("Entrar" if modo == "entrar" else "Criar conta e entrar", enviar), alternar],
                    spacing=12, wrap=True),
         ], spacing=14), largura=420, padding=26)
+        # O título nunca quebra: o tamanho acompanha o espaço que sobra ao lado do formulário.
+        largura_pagina = getattr(self.page, "width", None) or 1160
+        largura_texto = max(360, largura_pagina - 420 - 40 - 120)
+        tamanho_titulo = max(40, min(84, int(largura_texto / 8.8)))
         apresentacao = ft.Column([
-            titulo("OBJECTION!", 96),
+            titulo("OBJECTION!", tamanho_titulo, no_wrap=True),
             texto("The Art of Deception", 32, tema.LATAO, "FellItalico"),
             ft.Container(height=18),
             texto("Você defende o réu diante de um juiz que não se deixa enganar com facilidade.",
                   20, tema.CREME),
             texto("Cada argumento, blefe e prova muda o que o juiz pensa de você.",
                   20, tema.CREME_APAGADO),
-        ], spacing=4, expand=True, alignment=ft.MainAxisAlignment.CENTER)
+        ], spacing=4, width=largura_texto)
         self._mostrar(ft.Container(
-            content=ft.Row([apresentacao, formulario], spacing=60,
+            content=ft.Row([apresentacao, ft.Column([formulario], tight=True)], spacing=40,
                            vertical_alignment=ft.CrossAxisAlignment.CENTER),
-            padding=ft.Padding.symmetric(horizontal=70, vertical=40), expand=True))
+            padding=ft.Padding.symmetric(horizontal=60, vertical=40), expand=True))
 
     def entrar(self, apelido, senha):
         self.usuario = self.sessao.auth.login(apelido, senha)
@@ -130,7 +140,11 @@ class AppUI:
     def _perfil_texto(self):
         if isinstance(self.usuario, Administrador):
             return "administrador"
-        return "jogador novato" if self.usuario.nivel.value == "novato" else "jogador veterano"
+        if self.usuario.nivel.value == "veterano":
+            return "veterano"
+        partidas, n_partidas, vitorias, n_vitorias = self.usuario.progresso_promocao()
+        return (f"novato. Para virar veterano: {partidas} de {n_partidas} partidas concluídas "
+                f"e {vitorias} de {n_vitorias} vitórias")
 
     def _home_jogador(self):
         energia = self.sessao.tokens.energia(self.usuario)
@@ -157,9 +171,13 @@ class AppUI:
             salvas.append(ft.Row([
                 ft.Column([texto(p.nome, 17, tema.CREME, "CorpoMedio"),
                            texto(situacao, 15, tema.CREME_APAGADO, "CorpoItalico")], spacing=0, expand=True),
-                botao("Continuar", lambda e, i=p.id: self.continuar_partida(i), "secundario") if ativa
-                else ft.Container(),
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER))
+                ft.Row([
+                    botao("Continuar", lambda e, i=p.id: self.continuar_partida(i), "secundario") if ativa
+                    else ft.Container(),
+                    botao("Renomear", lambda e, p=p: self.renomear_partida(p), "secundario"),
+                    botao("Excluir", lambda e, p=p: self.excluir_partida(p), "secundario"),
+                ], spacing=8, wrap=True),
+            ], vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True))
         if not salvas:
             salvas.append(texto("Nenhuma partida ainda. Escolha um caso para começar.", 17,
                                 tema.CREME_APAGADO, "CorpoItalico"))
@@ -176,21 +194,24 @@ class AppUI:
         ], scroll=ft.ScrollMode.AUTO, spacing=10), padding=36, expand=True))
 
     def _home_admin(self):
-        resumo = self.sessao.administracao.resumo_consumo(self.usuario)
-        linhas = [texto(f"Total de tokens usados: {resumo['total']} "
-                        f"(reais {resumo['real']}, simulados {resumo['simulado']}).", 18)]
-        for conta, qtd in resumo["por_conta"].items():
-            linhas.append(texto(f"{conta}: {qtd} tokens", 17, tema.CREME_APAGADO))
-        if not resumo["por_conta"]:
-            linhas.append(texto("Ainda não há consumo registrado.", 17, tema.CREME_APAGADO, "CorpoItalico"))
-        self._mostrar(ft.Container(content=ft.Column([
-            self._barra_topo(),
-            ft.Container(height=14),
-            titulo("Painel do administrador", 30),
-            texto("A gestão de contas, cotas e pacotes chega na próxima etapa. Por enquanto, o consumo:",
-                  17, tema.CREME_APAGADO),
-            *linhas,
-        ], spacing=10, scroll=ft.ScrollMode.AUTO), padding=36, expand=True))
+        self._mostrar(tela_admin(self))
+
+    # ------------------------------------------------- gerenciar partidas
+    def renomear_partida(self, partida):
+        novo = campo("Novo nome", partida.nome, autofocus=True, max_length=60)
+        dialogo_formulario(
+            self, "Renomear partida", [novo],
+            lambda: self.sessao.partidas.renomear(self.usuario, partida.id, novo.value),
+            self.mostrar_home)
+
+    def excluir_partida(self, partida):
+        def excluir():
+            self.sessao.partidas.excluir(self.usuario, partida.id)
+            self.mostrar_home()
+
+        dialogo_confirmacao(self, "Excluir partida",
+                            f"“{partida.nome}” e as anotações dela serão apagadas. Isso não pode ser desfeito.",
+                            excluir, "Excluir")
 
     # ----------------------------------------------------------- ofertas
     def mostrar_ofertas(self):
@@ -327,7 +348,8 @@ class AppUI:
             texto("Ainda sem ações.", 16, tema.CREME_APAGADO, "CorpoItalico")]
         coluna_autos = ft.Column([
             titulo("Dossiê", 26), *dossie, ft.Container(height=6),
-            titulo("Histórico", 26), *historico,
+            titulo("Histórico", 26), *historico, ft.Container(height=6),
+            titulo("Caderno", 26), *self._caderno_controles(),
         ], spacing=10, col={"xs": 12, "md": 3})
 
         self.carimbo = carimbo_objecao()
@@ -336,6 +358,57 @@ class AppUI:
             ft.ResponsiveRow([coluna_juiz, coluna_centro, coluna_autos], spacing=28, run_spacing=24),
         ], scroll=ft.ScrollMode.AUTO, spacing=10), padding=32, expand=True)
         self._mostrar(ft.Stack([conteudo, self.carimbo], expand=True))
+
+    # ---------------------------------------------------------------- caderno
+    def _caderno_controles(self) -> list:
+        notas = self.sessao.caderno.listar(self.usuario, self.ctrl.partida.id)
+        saida = []
+        for a in notas:
+            citadas = ""
+            if a.evidencias:
+                citadas = " Provas: " + ", ".join(a.evidencias) + "."
+            saida.append(folha(ft.Column([
+                texto(a.titulo, 17, tema.TINTA, "CorpoMedio"),
+                *([texto(a.texto, 15, tema.TINTA)] if a.texto else []),
+                *([texto(citadas.strip(), 14, tema.TINTA, "CorpoItalico")] if citadas else []),
+                ft.Row([botao("Editar", lambda e, a=a: self.dialogo_anotacao(a), "papel"),
+                        botao("Excluir", lambda e, a=a: self.excluir_anotacao(a), "papel")],
+                       spacing=8, wrap=True),
+            ], spacing=4), faixa_cor=tema.PAPEL_ESCURO, padding=10))
+        if not notas:
+            saida.append(texto("Anote suas teorias aqui.", 16, tema.CREME_APAGADO, "CorpoItalico"))
+        saida.append(botao("Nova anotação", lambda e: self.dialogo_anotacao(), "secundario"))
+        return saida
+
+    def dialogo_anotacao(self, anotacao=None):
+        titulo_campo = campo("Título", anotacao.titulo if anotacao else "", autofocus=True, max_length=60)
+        texto_campo = campo("Anotação", anotacao.texto if anotacao else "", multiline=True,
+                            min_lines=3, max_lines=6, max_length=600)
+        provas = [(e, caixa(e.descricao[:70] + ("..." if len(e.descricao) > 70 else ""),
+                            bool(anotacao and e.id in anotacao.evidencias)))
+                  for e in self.ctrl.dossie()]
+        rotulo_provas = ([texto("Provas citadas (só as já descobertas)", 15, tema.TINTA, "CorpoMedio")]
+                         if provas else [])
+
+        def salvar():
+            citadas = [e.id for e, cx in provas if cx.value]
+            if anotacao is None:
+                self.sessao.caderno.criar(self.usuario, self.ctrl.partida.id, titulo_campo.value,
+                                          texto_campo.value, citadas)
+            else:
+                self.sessao.caderno.editar(self.usuario, anotacao.id, titulo_campo.value,
+                                           texto_campo.value, citadas)
+
+        dialogo_formulario(self, "Editar anotação" if anotacao else "Nova anotação",
+                           [titulo_campo, texto_campo, *rotulo_provas, *[cx for _, cx in provas]],
+                           salvar, self.mostrar_partida)
+
+    def excluir_anotacao(self, anotacao):
+        def excluir():
+            self.sessao.caderno.excluir(self.usuario, anotacao.id)
+            self.mostrar_partida()
+
+        dialogo_confirmacao(self, "Excluir anotação", f"Apagar “{anotacao.titulo}”?", excluir, "Excluir")
 
     @staticmethod
     def _faixa_confianca_texto(valor):

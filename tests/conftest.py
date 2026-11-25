@@ -93,9 +93,9 @@ def adm_srv(repos, tokens, relogio):
 
 @pytest.fixture
 def jogador(auth):
-    return auth.cadastrar_jogador("ana", "senha123")
+    return auth.cadastrar_jogador("ana", "Senha@123")
 
 
 @pytest.fixture
 def admin(auth):
-    return auth.cadastrar_administrador("chefe", "senha123")
+    return auth.cadastrar_administrador("chefe", "Senha@123")

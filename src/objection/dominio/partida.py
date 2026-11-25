@@ -171,7 +171,10 @@ class Partida:
         self._tocar()
 
     def renomear(self, novo_nome: str):
-        self._nome = exigir_texto(novo_nome, "nome")
+        novo_nome = exigir_texto(novo_nome, "nome")
+        if not 3 <= len(novo_nome) <= 60:
+            raise DadosInvalidosException("O nome da partida deve ter de 3 a 60 caracteres.")
+        self._nome = novo_nome
         self._tocar()
 
     @classmethod

@@ -4,6 +4,7 @@ from datetime import date, datetime
 from objection.dominio.enums import (
     FaixaConfianca, FasePartida, NivelJogador, Permissao, ResultadoVeredito, StatusConta,
 )
+from objection.dominio.anotacao import Anotacao
 from objection.dominio.partida import Partida
 from objection.dominio.resultado import HistoricoEvento, Veredito
 from objection.dominio.tokens import CarteiraTokens, PacoteTokens, RegistroConsumo, ResgateOferta
@@ -141,3 +142,18 @@ def partida_de_dict(d: dict) -> Partida:
             [_evento_de_dict(e) for e in d["historico"]], veredito, d["versao"])
     except (KeyError, ValueError, TypeError) as erro:
         raise DadosCorrompidosException(f"Registro de partida inválido: {erro}") from None
+
+
+def anotacao_para_dict(a: Anotacao) -> dict:
+    return {"id": a.id, "id_partida": a.id_partida, "id_jogador": a.id_jogador, "titulo": a.titulo,
+            "texto": a.texto, "evidencias": list(a.evidencias),
+            "criada_em": a.criada_em.isoformat(), "atualizada_em": a.atualizada_em.isoformat()}
+
+
+def anotacao_de_dict(d: dict) -> Anotacao:
+    try:
+        return Anotacao(d["id"], d["id_partida"], d["id_jogador"], d["titulo"], d["texto"],
+                        d["evidencias"], datetime.fromisoformat(d["criada_em"]),
+                        datetime.fromisoformat(d["atualizada_em"]))
+    except (KeyError, ValueError, TypeError) as erro:
+        raise DadosCorrompidosException(f"Registro de anotação inválido: {erro}") from None

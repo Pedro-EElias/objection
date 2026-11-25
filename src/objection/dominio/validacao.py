@@ -4,7 +4,7 @@ from objection.excecoes import DadosInvalidosException
 
 def exigir_texto(valor, campo: str) -> str:
     if not isinstance(valor, str) or not valor.strip():
-        raise DadosInvalidosException(f"{campo} deve ser um texto não vazio.")
+        raise DadosInvalidosException(f"O campo '{campo}' não pode ficar vazio.")
     return valor.strip()
 
 

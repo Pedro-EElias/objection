@@ -11,49 +11,49 @@ from objection.persistencia.fabrica import criar_repositorios
 
 # ------------------------------------------------------------- autenticação
 def test_cadastro_cria_jogador_novato_e_carteira(auth, repos):
-    j = auth.cadastrar_jogador("ana", "senha123")
+    j = auth.cadastrar_jogador("ana", "Senha@123")
     assert j.nivel is NivelJogador.NOVATO
     assert repos.carteiras.buscar_por_id(j.id) is not None
 
 
 def test_apelido_unico_sem_diferenciar_maiusculas(auth):
-    auth.cadastrar_jogador("ana", "senha123")
+    auth.cadastrar_jogador("ana", "Senha@123")
     with pytest.raises(ApelidoEmUsoException):
-        auth.cadastrar_jogador("ANA", "senha123")
+        auth.cadastrar_jogador("ANA", "Senha@123")
 
 
 def test_login_e_erros_com_a_mesma_mensagem(auth, jogador):
-    assert auth.login("ANA", "senha123").id == jogador.id
+    assert auth.login("ANA", "Senha@123").id == jogador.id
     with pytest.raises(CredenciaisInvalidasException) as e1:
         auth.login("ana", "errada")
     with pytest.raises(CredenciaisInvalidasException) as e2:
-        auth.login("fantasma", "senha123")
+        auth.login("fantasma", "Senha@123")
     assert str(e1.value) == str(e2.value)
 
 
 def test_alterar_senha_exige_a_atual(auth, jogador):
     with pytest.raises(CredenciaisInvalidasException):
-        auth.alterar_senha(jogador, "errada", "nova-senha")
-    auth.alterar_senha(jogador, "senha123", "nova-senha")
-    assert auth.login("ana", "nova-senha")
+        auth.alterar_senha(jogador, "errada", "Nova@senha1")
+    auth.alterar_senha(jogador, "Senha@123", "Nova@senha1")
+    assert auth.login("ana", "Nova@senha1")
 
 
 def test_alterar_apelido_respeita_unicidade(auth, jogador):
-    auth.cadastrar_jogador("bia", "senha123")
+    auth.cadastrar_jogador("bia", "Senha@123")
     with pytest.raises(ApelidoEmUsoException):
         auth.alterar_apelido(jogador, "bia")
     auth.alterar_apelido(jogador, "ana2")
-    assert auth.login("ana2", "senha123")
+    assert auth.login("ana2", "Senha@123")
 
 
 def test_excluir_conta_remove_usuario_e_carteira(auth, jogador, repos):
     with pytest.raises(CredenciaisInvalidasException):
         auth.excluir_conta(jogador, "errada")
-    auth.excluir_conta(jogador, "senha123")
+    auth.excluir_conta(jogador, "Senha@123")
     assert repos.usuarios.buscar_por_id(jogador.id) is None
     assert repos.carteiras.buscar_por_id(jogador.id) is None
     with pytest.raises(CredenciaisInvalidasException):
-        auth.login("ana", "senha123")
+        auth.login("ana", "Senha@123")
 
 
 # ------------------------------------------------------------------- tokens
@@ -150,7 +150,7 @@ def test_administrador_nao_resgata_oferta(ofertas, admin):
 
 # ----------------------------------------------------------- administração
 def test_resumo_de_consumo(adm_srv, tokens, auth, jogador, admin):
-    outra = auth.cadastrar_jogador("bia", "senha123")
+    outra = auth.cadastrar_jogador("bia", "Senha@123")
     tokens.registrar_consumo(jogador, "caso-1", "augusto", "gemini", 100, 100)
     tokens.registrar_consumo(outra, "caso-2", "helena", "local", 30, 30, simulado=True)
     r = adm_srv.resumo_consumo(admin)

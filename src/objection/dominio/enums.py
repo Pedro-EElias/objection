@@ -51,6 +51,7 @@ class Permissao(Enum):
     USAR_BLEFE = "usar_blefe"
     USAR_SUBORNO = "usar_suborno"
     ARGUMENTO_LIVRE = "argumento_livre"
+    USAR_CADERNO = "usar_caderno"
     VER_CONSUMO = "ver_consumo"
     GERENCIAR_COTAS = "gerenciar_cotas"
     GERENCIAR_CONTAS = "gerenciar_contas"

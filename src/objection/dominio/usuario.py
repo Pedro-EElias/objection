@@ -25,8 +25,23 @@ def _validar_apelido(apelido) -> str:
 
 
 def _validar_senha(senha) -> str:
-    if not isinstance(senha, str) or len(senha) < 6:
-        raise DadosInvalidosException("A senha deve ter ao menos 6 caracteres.")
+    """Senha forte: 8+ caracteres, com minúscula, maiúscula, número e caractere especial."""
+    if not isinstance(senha, str):
+        raise DadosInvalidosException("A senha deve ser um texto.")
+    faltas = []
+    if len(senha) < 8:
+        faltas.append("ao menos 8 caracteres")
+    if not any(c.islower() for c in senha):
+        faltas.append("uma letra minúscula")
+    if not any(c.isupper() for c in senha):
+        faltas.append("uma letra maiúscula")
+    if not any(c.isdigit() for c in senha):
+        faltas.append("um número")
+    if not any(not c.isalnum() and not c.isspace() for c in senha):
+        faltas.append("um caractere especial (como ! @ # $ %)")
+    if faltas:
+        lista = faltas[0] if len(faltas) == 1 else ", ".join(faltas[:-1]) + " e " + faltas[-1]
+        raise DadosInvalidosException(f"A senha precisa ter {lista}.")
     return senha
 
 
@@ -153,7 +168,7 @@ class Administrador(Usuario):
 class Jogador(Usuario):
     """Joga os casos. Começa Novato e vira Veterano com a experiência (RN12)."""
 
-    _PERMISSOES_NOVATO = frozenset({Permissao.JOGAR, Permissao.RESGATAR_OFERTAS})
+    _PERMISSOES_NOVATO = frozenset({Permissao.JOGAR, Permissao.RESGATAR_OFERTAS, Permissao.USAR_CADERNO})
     _PERMISSOES_VETERANO = _PERMISSOES_NOVATO | {
         Permissao.USAR_BLEFE, Permissao.USAR_SUBORNO, Permissao.ARGUMENTO_LIVRE,
     }
@@ -183,6 +198,11 @@ class Jogador(Usuario):
 
     @property
     def vitorias(self): return self._vitorias
+
+    def progresso_promocao(self) -> tuple:
+        """(partidas, partidas necessárias, vitórias, vitórias necessárias) rumo a Veterano."""
+        return (len(self._partidas_concluidas), self._config.partidas_para_promocao,
+                self._vitorias, self._config.vitorias_para_promocao)
 
     def pode(self, permissao):
         permitidas = (self._PERMISSOES_VETERANO if self._nivel is NivelJogador.VETERANO

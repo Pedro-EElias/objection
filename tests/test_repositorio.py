@@ -8,16 +8,16 @@ from objection.persistencia.fabrica import criar_repositorios
 
 def test_dados_sao_carregados_ao_iniciar(tmp_path):
     r1 = criar_repositorios(tmp_path)
-    r1.usuarios.salvar(Jogador.novo("j1", "ana", "senha123"))
+    r1.usuarios.salvar(Jogador.novo("j1", "ana", "Senha@123"))
     r1.pacotes.salvar(PacoteTokens("p1", "Pacote", 100, limite_por_conta=2))
     r2 = criar_repositorios(tmp_path)  # "reabrir o programa"
-    assert r2.usuarios.buscar_por_id("j1").verificar_senha("senha123")
+    assert r2.usuarios.buscar_por_id("j1").verificar_senha("Senha@123")
     assert r2.pacotes.buscar_por_id("p1").limite_por_conta == 2  # dois tipos no mesmo repositório genérico
 
 
 def test_remocao_persiste(tmp_path):
     r1 = criar_repositorios(tmp_path)
-    r1.usuarios.salvar(Jogador.novo("j1", "ana", "senha123"))
+    r1.usuarios.salvar(Jogador.novo("j1", "ana", "Senha@123"))
     assert r1.usuarios.remover("j1") is True
     assert criar_repositorios(tmp_path).usuarios.listar() == []
     assert r1.usuarios.remover("j1") is False

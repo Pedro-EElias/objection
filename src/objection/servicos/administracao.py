@@ -6,6 +6,7 @@ from objection.dominio.enums import Permissao
 from objection.dominio.tokens import PacoteTokens
 from objection.dominio.usuario import Jogador
 from objection.excecoes import DadosInvalidosException
+from objection.servicos.partidas import limpar_dados_do_jogador
 
 
 class ServicoAdministracao:
@@ -92,6 +93,7 @@ class ServicoAdministracao:
         admin.exigir(Permissao.GERENCIAR_CONTAS)
         jogador = self._jogador(id_jogador)
         jogador.marcar_excluida()
+        limpar_dados_do_jogador(self._repos, jogador.id)
         self._repos.usuarios.remover(jogador.id)
         self._repos.carteiras.remover(jogador.id)
 

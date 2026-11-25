@@ -36,8 +36,8 @@ def main():
         caso, motor, juiz = criar_caso_1(), MotorJogo(semente=1), JuizFormalista()
 
         titulo("Contas")
-        admin = auth.cadastrar_administrador("chefe", "senha123")
-        ana = auth.cadastrar_jogador("ana", "senha123")
+        admin = auth.cadastrar_administrador("chefe", "Senha@123")
+        ana = auth.cadastrar_jogador("ana", "Senha@123")
         print(f"{admin.apelido} ({admin.perfil}) e {ana.apelido} ({ana.perfil}, {ana.nivel.value})")
 
         titulo("Autorização por perfil: novato tenta blefar")

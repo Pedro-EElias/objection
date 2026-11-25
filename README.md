@@ -6,7 +6,7 @@
 
 Jogo narrativo de tribunal em Python. **A IA conversa; o motor do jogo decide.**
 
-> Status: **Etapa 3** — o Caso 1 já é jogável numa interface Flet (login, escolha do juiz, preparação, julgamento e veredito), com partidas salvas em JSON. Ainda não há IA real nem a tela completa do administrador.
+> Status: **Etapa 4** — o Caso 1 é jogável numa interface Flet, com partidas salvas em JSON (renomear, continuar, excluir), caderno de anotações e painel do administrador (consumo, contas, cotas e pacotes). Ainda não há IA real.
 
 ## Como executar
 
@@ -38,7 +38,7 @@ src/objection/
   ui/                tema, componentes e telas Flet
 main.py              ponto de entrada
 assets/              fontes (licença OFL) e, depois, retratos dos juízes
-tests/               119 testes de lógica + 7 de montagem das telas
+tests/               160 testes (regras, serviços, persistência e montagem das telas)
 data/                criada ao rodar (arquivos JSON; fora do Git)
 docs/DECISOES_TECNICAS.md
 ```

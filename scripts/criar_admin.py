@@ -20,7 +20,7 @@ def main():
     repos = criar_repositorios(pasta)
     garantir_pacotes_padrao(repos)
     apelido = input("Apelido do administrador: ").strip()
-    senha = getpass.getpass("Senha (mínimo 6 caracteres): ")
+    senha = getpass.getpass("Senha (8+ caracteres, com maiúscula, minúscula, número e especial): ")
     try:
         ServicoAutenticacao(repos).cadastrar_administrador(apelido, senha)
     except ObjectionException as erro:

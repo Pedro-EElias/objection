@@ -69,14 +69,14 @@ def test_tela_de_login_e_cadastro_montam(app, pagina):
 
 
 def test_login_com_senha_errada(app):
-    app.cadastrar("ana", "senha123")
+    app.cadastrar("ana", "Senha@123")
     app.sair()
     with pytest.raises(CredenciaisInvalidasException):
         app.entrar("ana", "errada")
 
 
 def test_fluxo_completo_de_uma_partida(app, pagina):
-    app.cadastrar("ana", "senha123")
+    app.cadastrar("ana", "Senha@123")
     assert app.usuario.apelido == "ana"
     app.mostrar_ofertas()
     assert pagina.dialogos
@@ -99,7 +99,7 @@ def test_fluxo_completo_de_uma_partida(app, pagina):
 
 
 def test_continuar_partida_salva(app):
-    app.cadastrar("ana", "senha123")
+    app.cadastrar("ana", "Senha@123")
     app.iniciar_partida("caso-1", "cinico")
     app.usar_opcao("i-catraca")
     id_partida = app.ctrl.partida.id
@@ -111,7 +111,7 @@ def test_continuar_partida_salva(app):
 
 
 def test_partida_chega_a_deliberacao_e_pede_veredito(app):
-    app.cadastrar("ana", "senha123")
+    app.cadastrar("ana", "Senha@123")
     app.iniciar_partida("caso-1", "pragmatico")
     app.ir_ao_julgamento()
     for acao in ("ar-saida", "ar-chave", "ar-corredor", "ar-oficio", "ar-carater"):
@@ -121,7 +121,7 @@ def test_partida_chega_a_deliberacao_e_pede_veredito(app):
 
 
 def test_veterano_usa_blefe_e_suborno(app):
-    app.cadastrar("ana", "senha123")
+    app.cadastrar("ana", "Senha@123")
     for i in range(3):
         app.usuario.registrar_partida_concluida(f"x{i}", True)
     app.iniciar_partida("caso-1", "cinico")
@@ -132,6 +132,179 @@ def test_veterano_usa_blefe_e_suborno(app):
 
 
 def test_painel_do_administrador_monta(app, pagina):
-    app.sessao.auth.cadastrar_administrador("chefe", "senha123")
-    app.entrar("chefe", "senha123")
+    app.sessao.auth.cadastrar_administrador("chefe", "Senha@123")
+    app.entrar("chefe", "Senha@123")
     assert pagina.controls
+
+
+# ------------------------------------------------ Etapa 4: diálogos e painel
+def _campos(dialogo):
+    return dialogo.content.content.controls
+
+
+def _preencher(dialogo, rotulo, valor):
+    for c in _campos(dialogo):
+        if getattr(c, "label", None) == rotulo:
+            c.value = valor
+            return
+    raise AssertionError(f"campo '{rotulo}' não encontrado")
+
+
+def _mensagem(dialogo):
+    return _campos(dialogo)[-1].value
+
+
+def _clicar(dialogo, indice=-1):
+    dialogo.actions[indice].on_click(None)
+
+
+@pytest.fixture
+def jogando(app):
+    app.cadastrar("ana", "Senha@123")
+    app.iniciar_partida("caso-1", "formalista")
+    return app
+
+
+def test_renomear_partida_pela_tela(jogando, pagina):
+    p = jogando.ctrl.partida
+    jogando.mostrar_home()
+    jogando.renomear_partida(p)
+    dialogo = pagina.dialogos[-1]
+    _preencher(dialogo, "Novo nome", "Meu caso favorito")
+    _clicar(dialogo)
+    assert jogando.sessao.repos.partidas.buscar_por_id(p.id).nome == "Meu caso favorito"
+    assert not pagina.dialogos
+
+
+def test_nome_invalido_mantem_o_dialogo_aberto_com_a_mensagem(jogando, pagina):
+    p = jogando.ctrl.partida
+    jogando.renomear_partida(p)
+    dialogo = pagina.dialogos[-1]
+    _preencher(dialogo, "Novo nome", "ab")
+    _clicar(dialogo)
+    assert pagina.dialogos and "3 a 60" in _mensagem(dialogo)
+
+
+def test_excluir_partida_pela_tela(jogando, pagina):
+    p = jogando.ctrl.partida
+    jogando.mostrar_home()
+    jogando.excluir_partida(p)
+    _clicar(pagina.dialogos[-1])
+    assert jogando.sessao.repos.partidas.buscar_por_id(p.id) is None
+
+
+def test_caderno_criar_editar_excluir_pela_tela(jogando, pagina):
+    jogando.usar_opcao("i-catraca")
+    jogando.dialogo_anotacao()
+    d = pagina.dialogos[-1]
+    _preencher(d, "Título", "Saída às 17h42")
+    _preencher(d, "Anotação", "A catraca confirma a saída.")
+    caixas = [c for c in _campos(d) if hasattr(c, "value") and isinstance(c.value, bool)]
+    assert len(caixas) == 1  # só a prova já descoberta aparece
+    caixas[0].value = True
+    _clicar(d)
+    notas = jogando.sessao.caderno.listar(jogando.usuario, jogando.ctrl.partida.id)
+    assert [(a.titulo, a.evidencias) for a in notas] == [("Saída às 17h42", ("E1",))]
+    jogando.mostrar_partida()
+    jogando.dialogo_anotacao(notas[0])
+    d = pagina.dialogos[-1]
+    _preencher(d, "Título", "Saída confirmada")
+    _clicar(d)
+    assert jogando.sessao.caderno.listar(jogando.usuario, jogando.ctrl.partida.id)[0].titulo == "Saída confirmada"
+    jogando.excluir_anotacao(notas[0])
+    _clicar(pagina.dialogos[-1])
+    assert jogando.sessao.caderno.listar(jogando.usuario, jogando.ctrl.partida.id) == []
+
+
+def test_anotacao_sem_titulo_mostra_erro_no_dialogo(jogando, pagina):
+    jogando.dialogo_anotacao()
+    d = pagina.dialogos[-1]
+    _clicar(d)
+    assert pagina.dialogos and "título" in _mensagem(d).lower()
+
+
+@pytest.fixture
+def painel(app):
+    from objection.app.painel_admin import linhas_de_contas
+    app.sessao.auth.cadastrar_administrador("chefe", "Senha@123")
+    jogador = app.sessao.auth.cadastrar_jogador("ana", "Senha@123")
+    app.entrar("chefe", "Senha@123")
+    return app, jogador, lambda: linhas_de_contas(app.sessao, app.usuario)[0]
+
+
+def test_todas_as_secoes_do_painel_montam(painel):
+    app, _, _ = painel
+    from objection.ui.admin import SECOES, _trocar
+    for id_, _ in SECOES:
+        _trocar(app, id_)
+        assert app.secao_admin == id_
+
+
+def test_admin_altera_cotas_e_concede_tokens(painel, pagina):
+    from objection.ui.admin import _dialogo_cotas
+    app, jogador, linha = painel
+    _dialogo_cotas(app, linha())
+    d = pagina.dialogos[-1]
+    _preencher(d, "Cota diária (tokens)", "10000")
+    _preencher(d, "Conceder tokens (opcional)", "500")
+    _clicar(d)
+    c = app.sessao.tokens.carteira_atual(jogador.id)
+    assert c.cota_diaria == 10000 and c.saldo == 8000 + 500
+
+
+def test_admin_cota_invalida_mostra_erro(painel, pagina):
+    from objection.ui.admin import _dialogo_cotas
+    app, _, linha = painel
+    _dialogo_cotas(app, linha())
+    d = pagina.dialogos[-1]
+    _preencher(d, "Cota diária (tokens)", "muitos")
+    _clicar(d)
+    assert pagina.dialogos and "número inteiro" in _mensagem(d)
+
+
+def test_admin_suspende_reativa_e_remove_conta(painel, pagina):
+    from objection.ui.admin import _alternar_suspensao, _remover_conta
+    app, jogador, linha = painel
+    _alternar_suspensao(app, linha(), False)
+    assert app.sessao.auth.consultar(jogador.id).status.value == "suspensa"
+    _alternar_suspensao(app, linha(), True)
+    assert app.sessao.auth.consultar(jogador.id).status.value == "ativa"
+    _remover_conta(app, linha())
+    _clicar(pagina.dialogos[-1])
+    assert app.sessao.auth.consultar(jogador.id) is None
+
+
+def test_admin_cria_edita_e_remove_pacote(painel, pagina):
+    from objection.ui.admin import _dialogo_pacote, _remover_pacote
+    app, _, _ = painel
+    _dialogo_pacote(app)
+    d = pagina.dialogos[-1]
+    _preencher(d, "Nome", "Pacote de Natal")
+    _preencher(d, "Tokens concedidos", "3000")
+    _preencher(d, "Limite de resgates por conta (vazio = sem limite)", "2")
+    _preencher(d, "Válido até, AAAA-MM-DD (vazio = sem validade)", "2026-12-31")
+    _clicar(d)
+    novo = [p for p in app.sessao.administracao.listar_pacotes(app.usuario) if p.nome == "Pacote de Natal"][0]
+    assert (novo.tokens, novo.limite_por_conta, novo.validade_ate.isoformat()) == (3000, 2, "2026-12-31")
+    _dialogo_pacote(app, novo)
+    d = pagina.dialogos[-1]
+    _preencher(d, "Tokens concedidos", "3500")
+    _preencher(d, "Limite de resgates por conta (vazio = sem limite)", "")
+    _clicar(d)
+    editado = app.sessao.repos.pacotes.buscar_por_id(novo.id)
+    assert editado.tokens == 3500 and editado.limite_por_conta is None
+    _remover_pacote(app, editado)
+    _clicar(pagina.dialogos[-1])
+    assert app.sessao.repos.pacotes.buscar_por_id(novo.id) is None
+
+
+def test_pacote_com_data_invalida_mostra_erro(painel, pagina):
+    from objection.ui.admin import _dialogo_pacote
+    app, _, _ = painel
+    _dialogo_pacote(app)
+    d = pagina.dialogos[-1]
+    _preencher(d, "Nome", "Teste")
+    _preencher(d, "Tokens concedidos", "100")
+    _preencher(d, "Válido até, AAAA-MM-DD (vazio = sem validade)", "31/12/2026")
+    _clicar(d)
+    assert pagina.dialogos and "AAAA-MM-DD" in _mensagem(d)

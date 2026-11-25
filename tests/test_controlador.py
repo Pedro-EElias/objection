@@ -21,7 +21,7 @@ def auth(sessao):
 
 @pytest.fixture
 def jogador(sessao):
-    return sessao.auth.cadastrar_jogador("ana", "senha123")
+    return sessao.auth.cadastrar_jogador("ana", "Senha@123")
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ def test_nova_partida_e_salva_e_pode_ser_continuada(sessao, jogador, tmp_path, r
 
 
 def test_nao_continua_partida_de_outro_jogador(sessao, ctrl, auth):
-    outro = auth.cadastrar_jogador("bia", "senha123")
+    outro = auth.cadastrar_jogador("bia", "Senha@123")
     with pytest.raises(DadosInvalidosException):
         ControladorPartida.continuar(sessao, outro, ctrl.partida.id)
 
@@ -142,7 +142,7 @@ def test_promocao_aparece_no_fim_da_partida(sessao, jogador):
 
 
 def test_partidas_do_jogador(sessao, jogador, auth):
-    outro = auth.cadastrar_jogador("bia", "senha123")
+    outro = auth.cadastrar_jogador("bia", "Senha@123")
     ControladorPartida.nova(sessao, jogador, "caso-1", "formalista")
     ControladorPartida.nova(sessao, outro, "caso-1", "cinico")
     assert len(sessao.partidas_do_jogador(jogador)) == 1
@@ -159,7 +159,7 @@ def _taxa_de_vitoria(tmp_path_factory, plano_prep, plano_julg, id_juiz, n=40):
     for semente in range(n):
         pasta = tmp_path_factory.mktemp("bal")
         s = SessaoApp(pasta, semente=semente)
-        u = s.auth.cadastrar_jogador(f"jog{semente}", "senha123")
+        u = s.auth.cadastrar_jogador(f"jog{semente}", "Senha@123")
         c = ControladorPartida.nova(s, u, "caso-1", id_juiz)
         for a in plano_prep:
             c.executar(a)
