@@ -12,11 +12,19 @@ sys.path.insert(0, str(RAIZ / "src"))
 import flet as ft  # noqa: E402
 
 from objection.app.controlador import SessaoApp  # noqa: E402
+from objection.excecoes import ObjectionException  # noqa: E402
+from objection.ia.configuracao import carregar_env  # noqa: E402
 from objection.ui.app import AppUI  # noqa: E402
 
 
 def main(page: ft.Page):
-    AppUI(page, SessaoApp(RAIZ / "data")).iniciar()
+    carregar_env(RAIZ / ".env")  # chaves de IA (opcionais); nunca vão para o Git
+    try:
+        sessao = SessaoApp(RAIZ / "data")
+    except ObjectionException as erro:
+        page.add(ft.Text(f"Não foi possível iniciar: {erro}", color="#A33A3F", size=18))
+        return
+    AppUI(page, sessao).iniciar()
 
 
 if __name__ == "__main__":

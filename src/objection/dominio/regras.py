@@ -20,6 +20,10 @@ def calcular_probabilidade(
     return limitar(bruto, config.prob_min, config.prob_max)
 
 
+def nivel_suspeita(suspeita: int) -> str:
+    return "baixa" if suspeita < 30 else "média" if suspeita < 60 else "alta"
+
+
 def faixa_confianca(confianca: int) -> FaixaConfianca:
     if confianca < 25:
         return FaixaConfianca.HOSTIL

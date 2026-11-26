@@ -38,6 +38,12 @@ class ConfigBalanceamento:
     suspeita_suborno_sucesso: int = 10
     perda_suborno: int = 30
     suspeita_suborno_descoberto: int = 40
+    # Argumento livre (a IA interpreta; o motor valida e calcula)
+    bonus_livre_por_prova: int = 12
+    bonus_livre_maximo: int = 30
+    bonus_clareza: int = 3
+    # Conduta inadequada (RN24): tentativa de manipular o juiz por texto livre
+    suspeita_conduta_inadequada: int = 10
     # Progressão do jogador (RN12)
     partidas_para_promocao: int = 3
     vitorias_para_promocao: int = 2

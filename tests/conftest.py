@@ -99,3 +99,10 @@ def jogador(auth):
 @pytest.fixture
 def admin(auth):
     return auth.cadastrar_administrador("chefe", "Senha@123")
+
+
+@pytest.fixture(autouse=True)
+def sem_ia_no_ambiente(monkeypatch):
+    """Os testes nunca devem usar chaves reais do ambiente de quem os executa."""
+    for nome in ("GEMINI_API_KEY", "GEMINI_MODEL", "IA_TIMEOUT_SEGUNDOS", "IA_MAX_TOKENS_SAIDA", "IA_CADEIAS"):
+        monkeypatch.delenv(nome, raising=False)

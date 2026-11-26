@@ -56,7 +56,7 @@ def main():
             texto = "Reação do juiz " * 200
             estimativa = 2 * tokens.estimar_tokens(texto)
             tokens.autorizar_chamada(ana, caso.id, estimativa)  # confere saldo e cota ANTES da chamada
-            tokens.registrar_consumo(ana, caso.id, "augusto", "local", estimativa // 2, estimativa // 2, simulado=True)
+            tokens.registrar_consumo(ana, caso.id, "augusto", "local", estimativa // 2, estimativa // 2, simulado=True, debitar=True)
         print(f"Depois de 3 chamadas simuladas: {tokens.energia(ana)}/100")
 
         titulo("Oferta simulada")

@@ -5,6 +5,7 @@ from objection.dominio.enums import FasePartida, Permissao, ResultadoVeredito
 from objection.dominio.partida import Partida
 from objection.dominio.regras import faixa_confianca
 from objection.dominio.resultado import HistoricoEvento, Veredito
+from objection.excecoes import FaseInvalidaException
 
 
 class MotorJogo:
@@ -58,6 +59,20 @@ class MotorJogo:
             delta_suspeita=r.delta_suspeita, motivos=r.motivos))
         self._verificar_fim_do_julgamento(partida)
         return r
+
+    def registrar_conduta_inadequada(self, partida):
+        """RN24: texto que tenta manipular o juiz aumenta a suspeita. Só o motor altera o estado."""
+        partida.garantir_ativa()
+        if partida.fase is not FasePartida.JULGAMENTO:
+            raise FaseInvalidaException("A fala livre só é possível durante o julgamento.")
+        delta = self._config.suspeita_conduta_inadequada
+        partida.ajustar_suspeita(delta)
+        partida.registrar_evento(HistoricoEvento(
+            rodada=partida.rodada, id_acao="conduta-inadequada",
+            descricao="Fala fora das regras do tribunal", sucesso=False,
+            delta_confianca=0, delta_suspeita=delta,
+            motivos=("Conduta inadequada: o juiz desconfia de quem tenta manipular a sessão.",)))
+        self._verificar_fim_do_julgamento(partida)
 
     def emitir_veredito(self, partida, caso) -> Veredito:
         partida.garantir_ativa()

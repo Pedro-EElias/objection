@@ -6,6 +6,7 @@ from objection.dominio.acao import Investigacao, PrepararTestemunha
 from objection.dominio.enums import FasePartida, NivelJogador
 from objection.dominio.juiz import todos_os_juizes
 from objection.excecoes import AcessoNegadoException, DadosInvalidosException, FaseInvalidaException
+from objection.ia.contexto import ContextoReacao
 from objection.ia.local import _FALAS, ProvedorLocal
 
 
@@ -49,7 +50,7 @@ def test_todo_juiz_tem_fala_para_todo_evento():
     for juiz in todos_os_juizes():
         assert set(_FALAS[juiz.id]) == eventos
         for evento in eventos:
-            assert ProvedorLocal().gerar_reacao(juiz, evento, 0).dialogo
+            assert ProvedorLocal().gerar_reacao(juiz, ContextoReacao(evento=evento)).dialogo
 
 
 def test_catalogo_lista_o_caso_1():

@@ -86,3 +86,20 @@ class CotaDoCasoExcedidaException(ObjectionException):
 
 class OfertaIndisponivelException(ObjectionException):
     """Pacote inexistente, expirado, esgotado ou já resgatado hoje."""
+
+
+# --- Etapa 5: integração com IA ---
+class ConfiguracaoIAException(ObjectionException):
+    """Variável de ambiente ausente ou inválida (a mensagem nunca traz o valor da chave)."""
+
+
+class ProvedorIAIndisponivelException(ObjectionException):
+    """O provedor de IA não respondeu (rede, tempo esgotado, limite, erro do servidor ou bloqueio)."""
+
+
+class RespostaIAInvalidaException(ObjectionException):
+    """A IA respondeu, mas fora do contrato esperado. A resposta é descartada."""
+
+
+class InterpretacaoIndisponivelException(ObjectionException):
+    """O argumento livre não pôde ser interpretado (sem IA, sem energia ou falha). Nada foi alterado."""

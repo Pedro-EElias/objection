@@ -371,3 +371,37 @@ class Blefe(AcaoDeclaratoria):
             susp_falha=10 + 5 * self._nivel,
             rng=rng,
         )
+
+
+class ArgumentoLivre(AcaoDeclaratoria):
+    """Argumento escrito pelo jogador. A IA só diz QUAIS afirmações do caso ele faz; quem calcula é o motor.
+
+    Rende mais quando as afirmações são sustentadas por provas já descobertas, o que reduz o
+    peso da sorte para quem argumenta bem. A clareza (0 a 2) dada pela IA tem efeito pequeno e limitado.
+    """
+
+    def __init__(self, id_acao, texto, afirmacoes, clareza=0, config=CONFIG_PADRAO):
+        super().__init__(id_acao, texto, afirmacoes, (), config)
+        self._clareza = exigir_intervalo(clareza, "clareza", 0, 2)
+
+    @property
+    def clareza(self): return self._clareza
+
+    @property
+    def permissao_exigida(self): return Permissao.ARGUMENTO_LIVRE
+
+    @property
+    def categoria(self): return "argumento"
+
+    @property
+    def rotulo_risco(self): return "depende do que você argumenta"
+
+    def executar(self, partida, caso, juiz, rng):
+        cfg = self._config
+        analise = self._analisar(partida, caso, TipoAlegacao.ARGUMENTO, 0)
+        bonus = (min(cfg.bonus_livre_por_prova * analise.evidencias_sustentando, cfg.bonus_livre_maximo)
+                 + cfg.bonus_clareza * self._clareza)
+        ganho = cfg.ganho_argumento + cfg.ganho_por_evidencia * analise.evidencias_sustentando
+        # risco negativo = bônus de probabilidade (o motor soma e depois limita a 5%..95%)
+        return self._resolver(partida, juiz, analise, -bonus, ganho, cfg.perda_argumento,
+                              0, cfg.suspeita_falha_argumento, rng)

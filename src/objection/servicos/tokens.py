@@ -37,26 +37,43 @@ class ServicoTokens:
         """Percentual que o jogador enxerga (ex.: 90 de 100)."""
         return self.carteira_atual(jogador.id).energia_percentual
 
+    def saldo_diario(self, jogador) -> tuple:
+        """Devolve (saldo atual, cota diária), em tokens."""
+        carteira = self.carteira_atual(jogador.id)
+        return carteira.saldo, carteira.cota_diaria
+
+    def cota_caso(self, jogador, id_caso) -> tuple:
+        """Devolve (tokens restantes, limite diário) para o caso atual."""
+        carteira = self.carteira_atual(jogador.id)
+        usados = carteira.consumo_por_caso.get(id_caso, 0)
+        return max(0, carteira.cota_por_caso - usados), carteira.cota_por_caso
+
     def autorizar_chamada(self, jogador, id_caso, estimativa):
         """RN16: levanta exceção se faltar saldo ou cota do caso; o jogo segue no modo offline."""
         jogador.exigir_ativa()
         self.carteira_atual(jogador.id).autorizar(estimativa, id_caso)
 
     def registrar_consumo(self, jogador, id_caso, id_juiz, provedor,
-                          tokens_entrada, tokens_saida, simulado=False) -> RegistroConsumo:
-        """RN17: todo consumo vai para o livro, inclusive o simulado."""
+                          tokens_entrada, tokens_saida, simulado=False, debitar=None) -> RegistroConsumo:
+        """RN17: todo consumo vai para o livro, inclusive o simulado.
+
+        Só o consumo real desconta energia (a energia vale só para o modo online). Passe
+        debitar=True para forçar o desconto, por exemplo numa demonstração.
+        """
+        debitar = (not simulado) if debitar is None else debitar
         registro = RegistroConsumo(
             uuid.uuid4().hex[:12], jogador.id, id_caso, id_juiz, provedor,
             tokens_entrada, tokens_saida, simulado, self._relogio())
-        for tentativa in (1, 2):
-            try:
-                carteira = self.carteira_atual(jogador.id)
-                carteira.consumir(registro.total, id_caso)
-                self._repos.carteiras.salvar(carteira)
-                break
-            except VersaoConflitanteException:
-                self._repos.carteiras.recarregar()
-                if tentativa == 2:
-                    raise
+        if debitar:
+            for tentativa in (1, 2):
+                try:
+                    carteira = self.carteira_atual(jogador.id)
+                    carteira.consumir(registro.total, id_caso)
+                    self._repos.carteiras.salvar(carteira)
+                    break
+                except VersaoConflitanteException:
+                    self._repos.carteiras.recarregar()
+                    if tentativa == 2:
+                        raise
         self._repos.consumos.salvar(registro)
         return registro

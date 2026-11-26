@@ -17,6 +17,7 @@ class Caso:
         pares_contraditorios=(),
         confianca_minima_vitoria=60,
         suspeita_maxima_vitoria=50,
+        afirmacoes=None,
     ):
         self._id = exigir_texto(id_caso, "id_caso")
         self._titulo = exigir_texto(titulo, "titulo")
@@ -29,6 +30,7 @@ class Caso:
                 raise DadosInvalidosException(f"Evidência duplicada: {ev.id}.")
             self._evidencias[ev.id] = ev
         self._testemunhas = tuple(testemunhas)
+        self._afirmacoes = dict(afirmacoes or {})
         self._pares = tuple(tuple(p) for p in pares_contraditorios)
         self._confianca_minima = exigir_intervalo(confianca_minima_vitoria, "confianca_minima_vitoria", 0, 100)
         self._suspeita_maxima = exigir_intervalo(suspeita_maxima_vitoria, "suspeita_maxima_vitoria", 0, 100)
@@ -50,6 +52,11 @@ class Caso:
 
     @property
     def testemunhas(self): return self._testemunhas
+
+    @property
+    def catalogo_afirmacoes(self) -> dict:
+        """Afirmações que um argumento pode fazer neste caso (etiqueta -> descrição). Lista fechada."""
+        return dict(self._afirmacoes)
 
     @property
     def evidencias(self): return tuple(self._evidencias.values())

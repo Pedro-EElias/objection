@@ -5,7 +5,7 @@ import flet as ft
 
 from objection.app.controlador import ControladorPartida
 from objection.casos.catalogo import listar_casos, obter_caso
-from objection.dominio.enums import FasePartida, ResultadoVeredito
+from objection.dominio.enums import FasePartida, Permissao, ResultadoVeredito
 from objection.dominio.juiz import todos_os_juizes
 from objection.dominio.usuario import Administrador
 from objection.excecoes import ObjectionException
@@ -38,6 +38,11 @@ class AppUI:
         self.narracao = []
         self.carimbo = None
         self.secao_admin = "consumo"
+        self.usar_ia = False
+        self.ocupado = False
+        self.carregando = False
+        self.fonte_fala = "local"
+        self.aviso_ia = None
 
     # ------------------------------------------------------------- base
     def iniciar(self):
@@ -168,16 +173,19 @@ class AppUI:
             if p.veredito:
                 situacao = ("Encerrada, veredito favorável" if p.veredito.resultado is
                             ResultadoVeredito.FAVORAVEL else "Encerrada, veredito desfavorável")
-            salvas.append(ft.Row([
-                ft.Column([texto(p.nome, 17, tema.CREME, "CorpoMedio"),
-                           texto(situacao, 15, tema.CREME_APAGADO, "CorpoItalico")], spacing=0, expand=True),
-                ft.Row([
-                    botao("Continuar", lambda e, i=p.id: self.continuar_partida(i), "secundario") if ativa
-                    else ft.Container(),
-                    botao("Renomear", lambda e, p=p: self.renomear_partida(p), "secundario"),
-                    botao("Excluir", lambda e, p=p: self.excluir_partida(p), "secundario"),
-                ], spacing=8, wrap=True),
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True))
+            acoes = []
+            if ativa:
+                acoes.append(botao("Continuar", lambda e, i=p.id: self.continuar_partida(i), "papel"))
+            acoes.extend([
+                botao("Renomear", lambda e, p=p: self.renomear_partida(p), "papel"),
+                botao("Excluir", lambda e, p=p: self.excluir_partida(p), "papel"),
+            ])
+            salvas.append(folha(ft.Column([
+                ft.Column([texto(p.nome, 17, tema.TINTA, "CorpoMedio"),
+                           texto(situacao, 15, "#6B6459", "CorpoItalico")], spacing=0, tight=True),
+                ft.Row(acoes, spacing=8, wrap=True),
+            ], spacing=8, tight=True),
+                faixa_cor=tema.LATAO, padding=12))
         if not salvas:
             salvas.append(texto("Nenhuma partida ainda. Escolha um caso para começar.", 17,
                                 tema.CREME_APAGADO, "CorpoItalico"))
@@ -276,6 +284,7 @@ class AppUI:
             self._aviso(str(erro), erro=True)
             return
         self.fala, self.narracao = None, []
+        self._reiniciar_ia()
         self.mostrar_partida()
 
     def continuar_partida(self, id_partida):
@@ -285,9 +294,38 @@ class AppUI:
             self._aviso(str(erro), erro=True)
             return
         self.fala, self.narracao = None, []
+        self._reiniciar_ia()
         self.mostrar_partida()
 
     # ---------------------------------------------------------------- partida
+    def _reiniciar_ia(self):
+        self.usar_ia, self.carregando, self.fonte_fala, self.aviso_ia = False, False, "local", None
+
+    def _alternar_ia(self, valor):
+        self.usar_ia = bool(valor)
+        self.page.update()
+
+    def _bloco_ia(self):
+        """Chave do modo online e saldos diário e por caso."""
+        if not self.sessao.ia_disponivel(self.ctrl.juiz.id):
+            return texto("Este juiz fala só com frases pré-escritas (nenhuma IA configurada).", 14,
+                         tema.CREME_APAGADO, "CorpoItalico")
+        energia = self.sessao.tokens.energia(self.usuario)
+        sem_energia = energia == 0
+        saldo_diario, limite_diario = self.sessao.tokens.saldo_diario(self.usuario)
+        restante_caso, limite_caso = self.sessao.tokens.cota_caso(self.usuario, self.ctrl.partida.id_caso)
+        nota = (f"Energia diária: {energia}% ({saldo_diario} de {limite_diario} tokens). "
+                f"Cota deste caso: {restante_caso} de {limite_caso} tokens.")
+        if sem_energia:
+            nota += " Sem energia: resgate uma oferta ou volte amanhã."
+        elif restante_caso == 0:
+            nota += " Limite deste caso atingido; use as opções prontas até amanhã."
+        chave = ft.Switch(
+            label="Juiz com IA (online)", value=self.usar_ia and not sem_energia, disabled=sem_energia,
+            on_change=lambda e: self._alternar_ia(e.control.value), active_color=tema.LATAO,
+            label_text_style=ft.TextStyle(color=tema.CREME, font_family="Corpo", size=16))
+        return ft.Column([chave, texto(nota, 14, tema.CREME_APAGADO, "CorpoItalico")], spacing=2, tight=True)
+
     def mostrar_partida(self):
         c = self.ctrl
         p = c.partida
@@ -317,13 +355,19 @@ class AppUI:
             medidor("Suspeita", p.suspeita, 100, tema.VINHO_VIVO, faixa_suspeita(p.suspeita)),
             medidor("Créditos", p.orcamento, self.sessao.motor._config.orcamento_inicial, tema.CREME_APAGADO,
                     "de 100"),
+            ft.Container(height=4), self._bloco_ia(),
         ], spacing=12, col={"xs": 12, "md": 3})
 
-        if self.fala:
+        if self.carregando:
+            palco = texto("O juiz está ponderando...", 24, tema.CREME_APAGADO, "FellItalico")
+        elif self.fala:
+            origem = [texto(f"Fala gerada por IA ({self.fonte_fala}).", 14, tema.CREME_APAGADO, "CorpoItalico")] \
+                if self.fonte_fala != "local" else []
             palco = ft.Container(
                 content=ft.Column([
                     texto(f"{c.juiz.nome} diz:", 16, tema.LATAO, "CorpoMedio"),
                     texto(f"“{self.fala}”", 28, tema.CREME, "FellItalico"),
+                    *origem,
                 ], spacing=6),
                 border=ft.Border.only(left=ft.BorderSide(3, tema.LATAO)),
                 padding=ft.Padding.only(left=18, top=4, bottom=4))
@@ -332,14 +376,32 @@ class AppUI:
                     if fase is FasePartida.PREPARACAO else "O julgamento chegou ao fim.")
             palco = texto(dica, 20, tema.CREME_APAGADO, "CorpoItalico")
         narracao = [texto(m, 16, tema.CREME_APAGADO) for m in self.narracao]
+        if self.aviso_ia:
+            narracao.append(texto(self.aviso_ia, 15, tema.CREME_APAGADO, "CorpoItalico"))
 
         opcoes = [folha_de_opcao(o, self.usar_opcao) for o in c.opcoes()]
         if fase is FasePartida.DELIBERACAO:
             opcoes = [texto("Não restam rodadas ou o juiz já viu o bastante. Peça o veredito.", 18,
                             tema.CREME)]
+        fala_livre = []
+        if fase is FasePartida.JULGAMENTO and self.usuario.pode(Permissao.ARGUMENTO_LIVRE):
+            if self.usar_ia:
+                caixa = campo("Seu argumento, com as suas palavras", max_length=280, multiline=True,
+                              min_lines=2, max_lines=4)
+                fala_livre = [folha(ft.Column([
+                    texto("Argumento livre", 20, tema.TINTA, "Fell"),
+                    texto("Use as provas que você descobriu. O juiz interpreta o que você disse e o jogo "
+                          "calcula o efeito: quem argumenta bem tem muito menos risco.", 14, tema.TINTA,
+                          "CorpoItalico"),
+                    caixa,
+                    botao("Argumentar", lambda e: self.argumento_livre(caixa.value), "papel"),
+                ], spacing=8), faixa_cor=tema.VERDE_AUTOS, padding=12)]
+            else:
+                fala_livre = [texto("Ligue o Juiz com IA (online) para argumentar com as suas próprias palavras.",
+                                    16, tema.CREME_APAGADO, "CorpoItalico")]
         coluna_centro = ft.Column([
             palco, *narracao, ft.Container(height=6),
-            titulo("Suas opções" if opcoes else "", 26), *opcoes,
+            titulo("Suas opções" if opcoes else "", 26), *opcoes, *fala_livre,
         ], spacing=10, col={"xs": 12, "md": 6})
 
         dossie = [folha_de_evidencia(e) for e in c.dossie()] or [
@@ -416,13 +478,46 @@ class AppUI:
         return faixa_confianca(valor).value
 
     def usar_opcao(self, id_acao):
-        try:
-            turno = self.ctrl.executar(id_acao)
-        except ObjectionException as erro:
-            self._aviso(str(erro), erro=True)
-            self.mostrar_partida()
+        if self.ocupado:
             return
+        self.ocupado = True
+        try:
+            if self.usar_ia:
+                self.carregando = True
+                self.mostrar_partida()  # mostra "ponderando" enquanto a IA responde
+            try:
+                turno = self.ctrl.executar(id_acao, usar_ia=self.usar_ia)
+            except ObjectionException as erro:
+                self.carregando = False
+                self._aviso(str(erro), erro=True)
+                self.mostrar_partida()
+                return
+            self._aplicar_turno(turno)
+        finally:
+            self.ocupado = False
+
+    def argumento_livre(self, texto_argumento):
+        if self.ocupado:
+            return
+        self.ocupado = True
+        try:
+            self.carregando = True
+            self.mostrar_partida()  # "ponderando": a IA faz até duas chamadas (interpretar e responder)
+            try:
+                turno = self.ctrl.argumento_livre(texto_argumento, usar_ia=self.usar_ia)
+            except ObjectionException as erro:
+                self.carregando = False
+                self._aviso(str(erro), erro=True)
+                self.mostrar_partida()
+                return
+            self._aplicar_turno(turno)
+        finally:
+            self.ocupado = False
+
+    def _aplicar_turno(self, turno):
+        self.carregando = False
         self.narracao = list(turno.motivos)
+        self.fonte_fala, self.aviso_ia = turno.fonte, turno.aviso
         if turno.dialogo:
             self.fala = turno.dialogo
         self.mostrar_partida()

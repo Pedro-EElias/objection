@@ -1,7 +1,8 @@
 from objection.excecoes import DadosInvalidosException
+from objection.ia.contexto import EVENTOS_OBJECAO
 from objection.ia.provedor_base import ProvedorIA, ReacaoJuiz
 
-_OBJECAO = {"contradicao", "suborno_descoberto"}
+_OBJECAO = EVENTOS_OBJECAO
 
 _FALAS = {
     "formalista": {
@@ -18,6 +19,7 @@ _FALAS = {
         "suborno_ok": ["Esta corte nada viu, nada ouviu e nada registrou. Siga."],
         "suborno_descoberto": ["Tentativa de corromper o juízo. Isto consta dos autos, doutor.",
                                "Isso é uma ofensa a esta corte e será levado em conta."],
+        "conduta_inadequada": ["Esta corte não admite tentativas de dirigir o juízo por meios estranhos aos autos. Fica registrado."],
         "veredito_favoravel": ["Os fatos foram demonstrados. Absolvo o réu."],
         "veredito_desfavoravel": ["A defesa não demonstrou o que alegou. O réu é condenado."],
     },
@@ -35,6 +37,7 @@ _FALAS = {
         "suborno_ok": ["Vou fingir que esta conversa não aconteceu."],
         "suborno_descoberto": ["Eu já vi muita coisa nesta sala, mas isso passou do limite.",
                                "Tentar me comprar foi um erro. Um erro caro."],
+        "conduta_inadequada": ["Se a ideia era me enrolar, não funcionou. Volte a falar do caso."],
         "veredito_favoravel": ["Ouvi as duas versões, e a da defesa é a que se sustenta. Absolvido."],
         "veredito_desfavoravel": ["A versão da defesa não se sustentou. Lamento, mas é condenação."],
     },
@@ -52,6 +55,7 @@ _FALAS = {
         "suborno_ok": ["Que gesto elegante. Pena que eu não vi nada."],
         "suborno_descoberto": ["Tentou me comprar? Com isso? Fico até ofendido pelo preço.",
                                "Suborno, e mal feito. Os autos agradecem."],
+        "conduta_inadequada": ["Que criativo: tentar me dar ordens. Anotado, e em tom de reprovação."],
         "veredito_favoravel": ["Para minha própria surpresa, a defesa me convenceu. Absolvido."],
         "veredito_desfavoravel": ["Como esperado: condenado. Foi um prazer desconfiar."],
     },
@@ -63,8 +67,12 @@ class ProvedorLocal(ProvedorIA):
 
     nome = "local"
 
-    def gerar_reacao(self, juiz, evento, indice=0):
-        falas = _FALAS.get(juiz.id, {}).get(evento)
+    def gerar_reacao(self, juiz, contexto):
+        falas = _FALAS.get(juiz.id, {}).get(contexto.evento)
         if not falas:
-            raise DadosInvalidosException(f"Sem fala para o juiz '{juiz.id}' no evento '{evento}'.")
-        return ReacaoJuiz(falas[indice % len(falas)], evento in _OBJECAO)
+            raise DadosInvalidosException(f"Sem fala para o juiz '{juiz.id}' no evento '{contexto.evento}'.")
+        dialogo = falas[contexto.indice % len(falas)]
+        return ReacaoJuiz(
+            dialogo, contexto.evento in _OBJECAO, provedor="local",
+            tokens_entrada=max(1, len(contexto.texto_resumo()) // 4),
+            tokens_saida=max(1, len(dialogo) // 4), simulado=True)

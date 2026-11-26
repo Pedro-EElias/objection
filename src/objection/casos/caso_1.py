@@ -41,6 +41,17 @@ def criar_caso() -> Caso:
             ("saiu_antes_do_fechamento", "ficou_apos_fechamento"),
             ("estava_em_casa", "ficou_apos_fechamento"),
         ),
+        afirmacoes={
+            "saiu_antes_do_fechamento": "O acusado saiu do museu antes das 18h, antes do fechamento.",
+            "ficou_apos_fechamento": "O acusado ficou no museu depois do fechamento.",
+            "estava_em_casa": "O acusado passou a noite em casa, longe do museu.",
+            "catraca_com_defeito": "O registro da catraca não é confiável porque ela estava com defeito.",
+            "outra_pessoa_no_corredor": "Outra pessoa, e não o acusado, estava no corredor à noite.",
+            "sem_chave_mestra": "O acusado nunca teve a chave-mestra que abriu o cofre.",
+            "seguranca_tinha_chave": "O segurança da noite também tinha acesso à chave-mestra.",
+            "tem_acesso_legitimo": "O acusado trabalha com a peça todos os dias e não precisaria roubá-la.",
+            "inocencia_geral": "O acusado tem bom caráter e não cometeria um crime assim.",
+        },
     )
 
 
